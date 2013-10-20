@@ -31,4 +31,20 @@ trait Security
             return false;
         }
     }
+
+    /**
+     * Secures an URL pattern and triggers a callback when
+     * any URL matching this pattern is requested.
+     */
+    public static function secure($pattern, callable $callback)
+    {
+        self::on('match', function ($path, $parameters) use ($pattern, $callback)
+        {
+            if (preg_match('#^'.$pattern.'#', $path)) {
+                if (false === call_user_func_array($callback, $parameters)) {
+                    self::triggerAccessDenied();
+                }
+            }
+        });
+    }
 }
