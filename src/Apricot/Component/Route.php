@@ -92,6 +92,12 @@ trait Route
         };
     }
 
+    /**
+     * Defines a prefix for all routes registered in the given callback.
+     *
+     * @param string $prefix
+     * @param callable $callback The callback where prefixed routes are defined.
+     */
     public static function prefix($prefix, callable $callback)
     {
         $apricot = self::getInstance();
@@ -128,6 +134,13 @@ trait Route
     //     }
     // }
 
+    /**
+     * Generates an URL with a path containing parameters or the name of a route.
+     *
+     * @param string $path A path with parameters or a route name
+     * @param array $parameters
+     * @return string
+     */
     public static function url($path, array $parameters)
     {
         $pattern = null;
@@ -156,6 +169,9 @@ trait Route
         return $path;
     }
 
+    /**
+     * Registers a callback that will be triggered if no route matches.
+     */
     public static function notFound($callback)
     {
         $apricot = self::getInstance();
