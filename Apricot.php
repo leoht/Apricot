@@ -46,6 +46,9 @@ trait Middleware
         );
     }
 
+    /**
+     * Runs all the middlewares of given type.
+     */
     public static function runMiddlewares($type = self::BEFORE_REQUEST)
     {
         $apricot = static::getInstance();
@@ -244,6 +247,11 @@ trait Http
     protected $cacheExpire = 0;
 
     /**
+    * @var callable
+    */
+    protected $accessDeniedCallback;
+
+    /**
      * Secured shortcut ($httponly default to true) for setcookie().
      */
     public function setCookie($name, $content, $expire = 0, $path = '/', $domain = null, $secure = false, $httponly = true)
@@ -273,13 +281,25 @@ trait Http
     public static function browse($path = '/', $method = 'GET')
     {
         $_REQUEST['_method'] = $method;
-        
+
         ob_start();
         $_SERVER['PATH_INFO'] = $path;
         self::run();
         $response = ob_get_clean();
 
         return $response;
+    }
+
+    /**
+     * Returns a request parameter.
+     */
+    public static function parameter($key)
+    {
+        if (isset($_REQUEST[$key])) {
+            return $_REQUEST[$key];
+        }
+
+        return false;
     }
 
     /**
@@ -296,6 +316,104 @@ trait Http
         }
 
         return $_SERVER['HTTP_METHOD'];
+    }
+
+    public static function header($name, $value = null)
+    {
+        if (is_array($value)) {
+            $value = implode(', ', $value);
+        }
+
+        header($name.': '.$value);
+    }
+
+    /**
+     * Uses an HTTP Basic authentication to authenticate an user.
+     */
+    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
+    {
+        if (isset($_SERVER['PHP_AUTH_USER'])) {
+            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
+                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
+                    return true;
+                }
+
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+
+            } else {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
+            self::header('HTTP/1.0 401 Unauthorized');
+            echo '<h1>401 Unauthorized</h1>';
+            exit;
+        }
+    }
+
+    /**
+     * Uses an HTTP Digest authentication to authenticate an user.
+     */
+    public static function httpDigest($realm, array $users, $triggerAccessDenied = false)
+    {
+        if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+            if (!($data = self::parseHttpDigest($_SERVER['PHP_AUTH_DIGEST'])) || !isset($users[$data['username']])) {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+                exit;
+            }
+
+            $A1 = md5($data['username'] . ':' . $realm . ':' . $users[$data['username']]);
+            $A2 = md5($_SERVER['REQUEST_METHOD'].':'.$data['uri']);
+            $validResponse = md5($A1.':'.$data['nonce'].':'.$data['nc'].':'.$data['cnonce'].':'.$data['qop'].':'.$A2);
+
+            if ($data['response'] != $validResponse) {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+
+        } else {
+            self::header('WWW-Authenticate', 'Digest realm="'.$realm.'",qop="auth",nonce="'.uniqid(rand()).'",opaque="'.md5($realm).'"');
+            self::header('HTTP/1.0 401 Unauthorized');
+            echo '<h1>401 Unauthorized</h1>';
+            exit;
+        }
+    }
+
+    /**
+     * Parses an HTTP digest response header.
+     */
+    protected static function parseHttpDigest($digest)
+    {
+        // protect against missing data
+        $needed_parts = array('nonce'=>1, 'nc'=>1, 'cnonce'=>1, 'qop'=>1, 'username'=>1, 'uri'=>1, 'response'=>1);
+        $data = array();
+        $keys = implode('|', array_keys($needed_parts));
+
+        preg_match_all('@(' . $keys . ')=(?:([\'"])([^\2]+?)\2|([^\s,]+))@', $digest, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $m) {
+            $data[$m[1]] = $m[3] ? $m[3] : $m[4];
+            unset($needed_parts[$m[1]]);
+        }
+
+        return $needed_parts ? false : $data;
     }
 
     /**
@@ -334,9 +452,42 @@ trait Http
         call_user_func($callback);
     }
 
-    protected function cacheRouteResult($route, $result)
+    /**
+     * Registers a callback triggered when a 403 Acess Denied response is sent.
+     */
+    public static function accessDenied(callable $callback)
     {
+        $apricot = self::getInstance();
 
+        $apricot->accessDeniedCallback = $callback;
+    }
+
+    /**
+     * Registers a callback triggered when a 404 Not Found response is sent.
+     */
+    public static function triggerNotFound($message = "404 Not Found")
+    {
+        $apricot = self::getInstance();
+
+        if (null != $apricot->notFoundCallback) {
+            call_user_func_array($apricot->notFoundCallback, array());
+        } else {
+            echo "<h1>$message</h1>";
+        }
+    }
+
+    /**
+     * Triggers a 403 Access Denied response.
+     */
+    public static function triggerAccessDenied($message = "403 Access Denied")
+    {
+        $apricot = self::getInstance();
+
+        if (null != $apricot->accessDeniedCallback) {
+            call_user_func_array($apricot->accessDeniedCallback, array());
+        } else {
+            echo "<h1>$message</h1>";
+        }
     }
 }
 
@@ -522,6 +673,12 @@ trait Route
         };
     }
 
+    /**
+     * Defines a prefix for all routes registered in the given callback.
+     *
+     * @param string $prefix
+     * @param callable $callback The callback where prefixed routes are defined.
+     */
     public static function prefix($prefix, callable $callback)
     {
         $apricot = self::getInstance();
@@ -558,6 +715,13 @@ trait Route
     //     }
     // }
 
+    /**
+     * Generates an URL with a path containing parameters or the name of a route.
+     *
+     * @param string $path A path with parameters or a route name
+     * @param array $parameters
+     * @return string
+     */
     public static function url($path, array $parameters)
     {
         $pattern = null;
@@ -586,6 +750,9 @@ trait Route
         return $path;
     }
 
+    /**
+     * Registers a callback that will be triggered if no route matches.
+     */
     public static function notFound($callback)
     {
         $apricot = self::getInstance();
@@ -625,6 +792,22 @@ trait Security
         } else {
             return false;
         }
+    }
+
+    /**
+     * Secures an URL pattern and triggers a callback when
+     * any URL matching this pattern is requested.
+     */
+    public static function secure($pattern, callable $callback)
+    {
+        self::on('match', function ($path, $parameters) use ($pattern, $callback)
+        {
+            if (preg_match('#^'.$pattern.'#', $path)) {
+                if (false === call_user_func_array($callback, $parameters)) {
+                    self::triggerAccessDenied();
+                }
+            }
+        });
     }
 }
 
@@ -753,11 +936,12 @@ class Apricot
 
     public static function run($catch = true)
     {
-        
-        // if (false !== $response = self::emit('request')) {
-        //     echo $response;
-        //     return;
-        // }
+        $pathInfo = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '/';
+
+        if ($response = self::emit('request', array($pathInfo))) {
+            echo $response;
+            return;
+        }
 
         $apricot = self::getInstance();
 
@@ -765,7 +949,6 @@ class Apricot
             static::runMiddlewares(self::BEFORE_REQUEST);
         }
 
-        $pathInfo = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '/';
         $matchedParameters = array();
 
         try {
@@ -780,7 +963,9 @@ class Apricot
                     }
 
                     $parameters = array_slice($matchedParameters, 1);
-                    
+
+                    self::emit('match', array($pathInfo, $parameters));
+
                     if (false === $response = call_user_func_array($attributes['callback'], $parameters)) {
                         continue;
                     } else {
@@ -793,9 +978,7 @@ class Apricot
                 }
             }
 
-            if (null != $apricot->notFoundCallback) {
-                call_user_func_array($apricot->notFoundCallback, array($pathInfo));
-            }
+            self::triggerNotFound();
 
         } catch(\Exception $e) {
             if (false === $catch || null == $apricot->getFailureCallback()) {
