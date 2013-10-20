@@ -22,6 +22,9 @@ trait Middleware
         );
     }
 
+    /**
+     * Runs all the middlewares of given type.
+     */
     public static function runMiddlewares($type = self::BEFORE_REQUEST)
     {
         $apricot = static::getInstance();
