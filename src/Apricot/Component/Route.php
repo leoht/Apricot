@@ -57,6 +57,14 @@ trait Route
     }
 
     /**
+     * Shortcut for Apricot::when('/')
+     */
+    public static function home(callable $callback)
+    {
+        self::when('/', $callback);
+    }
+
+    /**
      * Add requirements to a route definition.
      * This is a middleware between Apricot::when() and the route callback.
      *
