@@ -22,6 +22,11 @@ class Apricot
     protected static $instance;
 
     /**
+     * @var string
+     */
+    protected $environment = 'prod';
+
+    /**
      * @var array
      */
     protected $modules = array();
@@ -50,11 +55,12 @@ class Apricot
 
     public static function run($catch = true)
     {
-        
-        // if (false !== $response = self::emit('request')) {
-        //     echo $response;
-        //     return;
-        // }
+        $pathInfo = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '/';
+
+        if ($response = self::emit('request', array($pathInfo))) {
+            echo $response;
+            return;
+        }
 
         $apricot = self::getInstance();
 
@@ -62,7 +68,6 @@ class Apricot
             static::runMiddlewares(self::BEFORE_REQUEST);
         }
 
-        $pathInfo = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '/';
         $matchedParameters = array();
 
         try {
@@ -77,7 +82,9 @@ class Apricot
                     }
 
                     $parameters = array_slice($matchedParameters, 1);
-                    
+
+                    self::emit('match', array($pathInfo, $parameters));
+
                     if (false === $response = call_user_func_array($attributes['callback'], $parameters)) {
                         continue;
                     } else {
@@ -90,9 +97,7 @@ class Apricot
                 }
             }
 
-            if (null != $apricot->notFoundCallback) {
-                call_user_func_array($apricot->notFoundCallback, array($pathInfo));
-            }
+            self::triggerNotFound();
 
         } catch(\Exception $e) {
             if (false === $catch || null == $apricot->getFailureCallback()) {
@@ -166,5 +171,12 @@ class Apricot
         $this->failureCallback = $callback;
 
         return $this;
+    }
+
+    public static function setEnvironment($environment)
+    {
+        $apricot = self::getInstance();
+
+        $apricot->environment = $environment;
     }
 }
