@@ -12,6 +12,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testRouteMatch()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
         
         Apricot::when('/', function ()
         {
@@ -39,6 +40,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testRouteMatchWithPrefix()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::prefix('/foo', function ()
         {
@@ -54,6 +56,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testRouteMatchWithDeepPrefix()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::prefix('/foo', function ()
         {
@@ -88,6 +91,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testRouteMatchRequirements()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::when('/:page', Apricot::with(array('page' => '\d+'), function ($page)
         {
@@ -109,6 +113,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrlWithRouteName()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::when('/:first_name/:last_name', function ()
         {
@@ -126,6 +131,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrlWithPath()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         $url = Apricot::url('/:first_name/:last_name', array('first_name' => 'Foo', 'last_name' => 'Bar'));
 
@@ -135,6 +141,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testSecureRouteNotMatchIfNoHttps()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::when('/secured', Apricot::with(array('_secure' => true), function ()
         {

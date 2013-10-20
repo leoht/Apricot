@@ -6,6 +6,60 @@ use Apricot\Apricot;
 
 class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @covers Apricot\Component\DependencyInjection::set
+     * @covers Apricot\Component\DependencyInjection::get
+     */
+    public function testParameterIsStored()
+    {
+        Apricot::set('foo', 'Bar');
+
+        $this->assertTrue('Bar' === Apricot::get('foo'));
+    }
+
+    /**
+     * @covers Apricot\Component\DependencyInjection::set
+     * @covers Apricot\Component\DependencyInjection::get
+     */
+    public function testObjectIsStored()
+    {
+        $object = new \stdClass();
+
+        Apricot::set('bar', $object);
+
+        $this->assertTrue(Apricot::get('bar') instanceof \stdClass);
+    }
+
+    /**
+     * @covers Apricot\Component\DependencyInjection::provide
+     * @covers Apricot\Component\DependencyInjection::get
+     */
+    public function testObjectIsCreatedFromClass()
+    {
+        Apricot::provide('baz', '\\stdClass');
+
+        $this->assertTrue(Apricot::get('baz') instanceof \stdClass);
+    }
+
+    /**
+     * @covers Apricot\Component\DependencyInjection::provide
+     * @covers Apricot\Component\DependencyInjection::get
+     */
+    public function testObjectIsCreatedWithArguments()
+    {
+        require 'Fixtures/DependencyInjectionFixture.php';
+
+        Apricot::reset();
+
+        Apricot::set('foo', 'Foo');
+        Apricot::provide('bar', '\\stdClass');
+        Apricot::provide('baz', '\\DependencyInjectionFixture', array('%foo%', '@bar'));
+        
+        $instance = Apricot::get('baz');
+
+        $this->assertTrue('Foo' === $instance->a);
+        $this->assertTrue($instance->b instanceof \stdClass);
+    }
 
     /**
      * @covers Apricot\Component\DependencyInjection::scope

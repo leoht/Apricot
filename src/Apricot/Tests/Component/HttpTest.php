@@ -9,6 +9,7 @@ class HttpTest extends \PHPUnit_Framework_TestCase
     public function testCorrectMethodIsDetected()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::when('/', function ()
         {
@@ -22,6 +23,7 @@ class HttpTest extends \PHPUnit_Framework_TestCase
     public function testAccessDeniedTriggered()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::when('/', function ()
         {
@@ -34,7 +36,8 @@ class HttpTest extends \PHPUnit_Framework_TestCase
     public function testAccessDeniedTriggeredWithCallback()
     {
         Apricot::reset();
-        
+        Apricot::setEnvironment('test');
+
         Apricot::when('/', function ()
         {
             Apricot::triggerAccessDenied();

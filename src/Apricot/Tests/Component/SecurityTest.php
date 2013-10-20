@@ -9,6 +9,7 @@ class SecurityTest extends \PHPUnit_Framework_TestCase
     public function testUrlIsSecured()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::secure('/secured', function ($token)
         {
@@ -26,6 +27,7 @@ class SecurityTest extends \PHPUnit_Framework_TestCase
     public function testUrlIsSecuredWithParams()
     {
         Apricot::reset();
+        Apricot::setEnvironment('test');
 
         Apricot::secure('/secured', function ($token)
         {
