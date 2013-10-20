@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<phpunit colors="true"
+        bootstrap="autoload.php"
+        backupGlobals="false">
+
+    <testsuites>
+        <testsuite name="Apricot Test suite" >
+            <directory suffix="Test.php" >./src/Apricot/Tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

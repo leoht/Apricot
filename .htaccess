@@ -1,0 +1,7 @@
+AllowOverrides
+sdf
+
+RewriteEngine On
+Options +FollowSymlinks
+
+RewriteRule ^(.*)$ index.php [QSA,L]
