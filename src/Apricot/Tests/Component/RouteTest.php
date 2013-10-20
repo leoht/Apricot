@@ -132,21 +132,6 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue('/Foo/Bar' === $url);
     }
 
-    /**
-     * @covers Apricot\Component\Route::notFound
-     */
-    public function testNotFoundTriggered()
-    {
-        Apricot::reset();
-
-        Apricot::notFound(function ()
-        {
-            echo "Not Found";
-        });
-
-        $this->assertTrue("Not Found" === Apricot::browse('/foo/bar'));
-    }
-
     public function testSecureRouteNotMatchIfNoHttps()
     {
         Apricot::reset();

@@ -6,6 +6,9 @@ use Apricot\Apricot;
 
 class RestTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @covers Apricot\Component\Rest::resource
+     */
     public function testResourceRouteCreated()
     {
         Apricot::reset();
@@ -21,6 +24,9 @@ class RestTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue('Index' === Apricot::browse('/posts'));
     }
 
+    /**
+     * @covers Apricot\Component\Rest::resource
+     */
     public function testDeepResourceRouteCreated()
     {
         Apricot::reset();

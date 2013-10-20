@@ -15,7 +15,12 @@ class MiddlewareTest extends \PHPUnit_Framework_TestCase
             echo 'Foo';
         });
 
-        $this->assertTrue('Foo' === Apricot::browse('/'));
+        Apricot::when('/', function ()
+        {
+            echo 'Bar';
+        });
+
+        $this->assertTrue('FooBar' === Apricot::browse('/'));
     }
 
     /**
