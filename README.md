@@ -21,24 +21,7 @@ App::run();
 
 ```
 
-##Installation
-You can install Apricot using Composer:
-```json
-{
-    "require": {
-        "leoht/apricot"
-    }
-}
-```
+##TODO:
 
-Or download the single file Apricot.php at the root of this repository.
-
-You can now include it into your application entry point (e.g index.php):
-```php
-
-require 'Apricot.php';
-
-use Apricot\Apricot as App;
-
-// code...
-```
+- Write more tests
+- Write some doc
