@@ -1,4 +1,5 @@
 #Apricot
+[![Build Status](https://travis-ci.org/leoht/Apricot.png?branch=master)](https://travis-ci.org/leoht/Apricot)
 
 Apricot is a micro PHP framework that stands in only one file.
 
