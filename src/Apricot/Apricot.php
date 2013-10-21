@@ -11,6 +11,7 @@ class Apricot
     use Component\Middleware;
     use Component\Security;
     use Component\Rest;
+    use Component\Cache;
 
     const BEFORE_REQUEST = 5;
 
