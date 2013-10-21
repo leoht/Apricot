@@ -44,13 +44,6 @@ trait Event
         unset($apricot->listeners[$event]);
     }
 
-    /**
-     * Registers a callback that is triggered before any event listener is called.
-     */
-    public static function beforeEvent(callable $callback)
-    {
-
-    }
 
     /**
      * Wakes up listeners of a specific event.
@@ -70,7 +63,7 @@ trait Event
 
             foreach($listeners as $listener) {
 
-                self::emit('event', array($listener['callback']));
+                self::emit('event', array($event, $listener['callback']));
 
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
