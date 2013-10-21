@@ -85,14 +85,34 @@ trait DependencyInjection
         }
     }
 
-    public static function provide($id, $class, array $arguments = array())
+    public static function provide($id, $class = null, array $arguments = array())
     {
+        // Allow to provide a single array argument to registe multiple dependencies
+        if (is_array($id)) {
+            self::provideArray($id);
+            return;
+        }
+
         $apricot = self::getInstance();
 
         $apricot->dependencies[$id] = array(
             'class' => $class,
             'arguments' => $arguments,
         );
+    }
+
+    protected static function provideArray(array $dependencies)
+    {
+        $apricot = self::getInstance();
+
+        foreach($dependencies as $id => $dependency) {
+            $arguments = isset($dependency['arguments']) ? $dependency['arguments'] : array();
+
+            $apricot->dependencies[$id] = array(
+                'class' => $dependency['class'],
+                'arguments' => $arguments,
+            );
+        }
     }
 
     /**
