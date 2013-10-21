@@ -45,6 +45,14 @@ trait Event
     }
 
     /**
+     * Registers a callback that is triggered before any event listener is called.
+     */
+    public static function beforeEvent(callable $callback)
+    {
+
+    }
+
+    /**
      * Wakes up listeners of a specific event.
      */
     public function wakeUpListeners($event, array $arguments)
@@ -61,6 +69,9 @@ trait Event
             });
 
             foreach($listeners as $listener) {
+
+                self::emit('event', array($listener['callback']));
+
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
                 if (null !== $listenerResponse) {

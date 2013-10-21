@@ -1,7 +1,7 @@
 <?php
 /**
  * Apricot framework (one-file version).
- * Compiled on Sun 2013-10-20.
+ * Compiled on Mon 2013-10-21.
  *
  * Copyright (c) 2013 Léonard Hetsch <leo.hetsch@gmail.com>
  *
@@ -107,7 +107,15 @@ trait DependencyInjection
     protected $scopes = array();
 
     /**
+     * @var array
+     */
+    protected $dependencies = array();
+
+    /**
      * Sets a parameter or a service into the container.
+     *
+     * @param string $id
+     * @param mixed $value
      */
     public static function set($id, $value)
     {
@@ -121,13 +129,57 @@ trait DependencyInjection
         }
     }
 
+    /**
+     * Gets a parameter or a service from the container.
+     *
+     * @param string $id
+     * @return mixed
+     */
     public static function get($id)
     {
         $apricot = self::getInstance();
 
-        $service = $apricot->services[$id];
+        if (array_key_exists($id, $apricot->parameters)) {
+            return $apricot->parameters[$id];
+        } elseif (array_key_exists($id, $apricot->services)) {
+            return $apricot->services[$id];
+        } elseif (array_key_exists($id, $apricot->dependencies)) {
+            $dependency = $apricot->dependencies[$id];
+            $r = new \ReflectionClass($dependency['class']);
 
-        return $service;
+            $arguments = array();
+
+            foreach($dependency['arguments'] as $arg) {
+
+                // the argument is a reference to another dependency
+                if (0 === strpos($arg, '@')) {
+                    $arg = substr($arg, 1);
+                    if (! $arguments[] = self::get($arg)) {
+                        throw new \InvalidArgumentException(sprintf("Unable to find service '%s' into the DI container.", $arg));
+                    }
+                } elseif (preg_match('#%(.+)%#', $arg, $matches)) {
+                    $arguments[] = self::get($matches[1]);
+                } else {
+                    $arguments[] = $arg;
+                }
+            }
+
+            $instance = $r->newInstanceArgs($arguments);
+
+            return $instance;
+        } else {
+            return false;
+        }
+    }
+
+    public static function provide($id, $class, array $arguments = array())
+    {
+        $apricot = self::getInstance();
+
+        $apricot->dependencies[$id] = array(
+            'class' => $class,
+            'arguments' => $arguments,
+        );
     }
 
     /**
@@ -474,6 +526,9 @@ trait Http
         } else {
             echo "<h1>$message</h1>";
         }
+        if ('test' != $apricot->environment) {
+            exit;
+        }
     }
 
     /**
@@ -487,6 +542,10 @@ trait Http
             call_user_func_array($apricot->accessDeniedCallback, array());
         } else {
             echo "<h1>$message</h1>";
+        }
+
+        if ('test' != $apricot->environment) {
+            exit;
         }
     }
 }
@@ -635,6 +694,14 @@ trait Route
             'original_pattern' => $originalPattern,
             'callback' => $callback
         );
+    }
+
+    /**
+     * Shortcut for Apricot::when('/')
+     */
+    public static function home(callable $callback)
+    {
+        self::when('/', $callback);
     }
 
     /**
@@ -857,6 +924,14 @@ trait Event
     }
 
     /**
+     * Registers a callback that is triggered before any event listener is called.
+     */
+    public static function beforeEvent(callable $callback)
+    {
+
+    }
+
+    /**
      * Wakes up listeners of a specific event.
      */
     public function wakeUpListeners($event, array $arguments)
@@ -873,6 +948,9 @@ trait Event
             });
 
             foreach($listeners as $listener) {
+
+                self::emit('event', array($listener['callback']));
+
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
                 if (null !== $listenerResponse) {
@@ -906,6 +984,11 @@ class Apricot
      * @var self
      */
     protected static $instance;
+
+    /**
+     * @var string
+     */
+    protected $environment = 'prod';
 
     /**
      * @var array
@@ -1052,5 +1135,12 @@ class Apricot
         $this->failureCallback = $callback;
 
         return $this;
+    }
+
+    public static function setEnvironment($environment)
+    {
+        $apricot = self::getInstance();
+
+        $apricot->environment = $environment;
     }
 }

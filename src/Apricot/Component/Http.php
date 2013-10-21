@@ -101,75 +101,6 @@ trait Http
     }
 
     /**
-     * Uses an HTTP Basic authentication to authenticate an user.
-     */
-    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
-    {
-        if (isset($_SERVER['PHP_AUTH_USER'])) {
-            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
-                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
-                    return true;
-                }
-
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-
-            } else {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            }
-        } else {
-            self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
-            self::header('HTTP/1.0 401 Unauthorized');
-            echo '<h1>401 Unauthorized</h1>';
-            exit;
-        }
-    }
-
-    /**
-     * Uses an HTTP Digest authentication to authenticate an user.
-     */
-    public static function httpDigest($realm, array $users, $triggerAccessDenied = false)
-    {
-        if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-            if (!($data = self::parseHttpDigest($_SERVER['PHP_AUTH_DIGEST'])) || !isset($users[$data['username']])) {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-                exit;
-            }
-
-            $A1 = md5($data['username'] . ':' . $realm . ':' . $users[$data['username']]);
-            $A2 = md5($_SERVER['REQUEST_METHOD'].':'.$data['uri']);
-            $validResponse = md5($A1.':'.$data['nonce'].':'.$data['nc'].':'.$data['cnonce'].':'.$data['qop'].':'.$A2);
-
-            if ($data['response'] != $validResponse) {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-
-        } else {
-            self::header('WWW-Authenticate', 'Digest realm="'.$realm.'",qop="auth",nonce="'.uniqid(rand()).'",opaque="'.md5($realm).'"');
-            self::header('HTTP/1.0 401 Unauthorized');
-            echo '<h1>401 Unauthorized</h1>';
-            exit;
-        }
-    }
-
-    /**
      * Parses an HTTP digest response header.
      */
     protected static function parseHttpDigest($digest)
@@ -247,6 +178,9 @@ trait Http
         } else {
             echo "<h1>$message</h1>";
         }
+        if ('test' != $apricot->environment) {
+            exit;
+        }
     }
 
     /**
@@ -260,6 +194,10 @@ trait Http
             call_user_func_array($apricot->accessDeniedCallback, array());
         } else {
             echo "<h1>$message</h1>";
+        }
+
+        if ('test' != $apricot->environment) {
+            exit;
         }
     }
 }
