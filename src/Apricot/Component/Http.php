@@ -147,15 +147,6 @@ trait Http
         return $response;
     }
 
-    public static function cache(callable $callback, $expire = 3600)
-    {
-        $apricot = self::getInstance();
-
-        $apricot->cacheExpire = $expire;
-
-        call_user_func($callback);
-    }
-
     /**
      * Registers a callback triggered when a 403 Acess Denied response is sent.
      */
