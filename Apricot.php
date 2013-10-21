@@ -172,14 +172,34 @@ trait DependencyInjection
         }
     }
 
-    public static function provide($id, $class, array $arguments = array())
+    public static function provide($id, $class = null, array $arguments = array())
     {
+        // Allow to provide a single array argument to registe multiple dependencies
+        if (is_array($id)) {
+            self::provideArray($id);
+            return;
+        }
+
         $apricot = self::getInstance();
 
         $apricot->dependencies[$id] = array(
             'class' => $class,
             'arguments' => $arguments,
         );
+    }
+
+    protected static function provideArray(array $dependencies)
+    {
+        $apricot = self::getInstance();
+
+        foreach($dependencies as $id => $dependency) {
+            $arguments = isset($dependency['arguments']) ? $dependency['arguments'] : array();
+
+            $apricot->dependencies[$id] = array(
+                'class' => $dependency['class'],
+                'arguments' => $arguments,
+            );
+        }
     }
 
     /**
@@ -377,75 +397,6 @@ trait Http
         }
 
         header($name.': '.$value);
-    }
-
-    /**
-     * Uses an HTTP Basic authentication to authenticate an user.
-     */
-    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
-    {
-        if (isset($_SERVER['PHP_AUTH_USER'])) {
-            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
-                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
-                    return true;
-                }
-
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-
-            } else {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            }
-        } else {
-            self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
-            self::header('HTTP/1.0 401 Unauthorized');
-            echo '<h1>401 Unauthorized</h1>';
-            exit;
-        }
-    }
-
-    /**
-     * Uses an HTTP Digest authentication to authenticate an user.
-     */
-    public static function httpDigest($realm, array $users, $triggerAccessDenied = false)
-    {
-        if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-            if (!($data = self::parseHttpDigest($_SERVER['PHP_AUTH_DIGEST'])) || !isset($users[$data['username']])) {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-                exit;
-            }
-
-            $A1 = md5($data['username'] . ':' . $realm . ':' . $users[$data['username']]);
-            $A2 = md5($_SERVER['REQUEST_METHOD'].':'.$data['uri']);
-            $validResponse = md5($A1.':'.$data['nonce'].':'.$data['nc'].':'.$data['cnonce'].':'.$data['qop'].':'.$A2);
-
-            if ($data['response'] != $validResponse) {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-
-        } else {
-            self::header('WWW-Authenticate', 'Digest realm="'.$realm.'",qop="auth",nonce="'.uniqid(rand()).'",opaque="'.md5($realm).'"');
-            self::header('HTTP/1.0 401 Unauthorized');
-            echo '<h1>401 Unauthorized</h1>';
-            exit;
-        }
     }
 
     /**
@@ -876,6 +827,75 @@ trait Security
             }
         });
     }
+
+    /**
+     * Uses an HTTP Basic authentication to authenticate an user.
+     */
+    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
+    {
+        if (isset($_SERVER['PHP_AUTH_USER'])) {
+            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
+                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
+                    return true;
+                }
+
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+
+            } else {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
+            self::header('HTTP/1.0 401 Unauthorized');
+            echo '<h1>401 Unauthorized</h1>';
+            exit;
+        }
+    }
+
+    /**
+     * Uses an HTTP Digest authentication to authenticate an user.
+     */
+    public static function httpDigest($realm, array $users, $triggerAccessDenied = false)
+    {
+        if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+            if (!($data = self::parseHttpDigest($_SERVER['PHP_AUTH_DIGEST'])) || !isset($users[$data['username']])) {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+                exit;
+            }
+
+            $A1 = md5($data['username'] . ':' . $realm . ':' . $users[$data['username']]);
+            $A2 = md5($_SERVER['REQUEST_METHOD'].':'.$data['uri']);
+            $validResponse = md5($A1.':'.$data['nonce'].':'.$data['nc'].':'.$data['cnonce'].':'.$data['qop'].':'.$A2);
+
+            if ($data['response'] != $validResponse) {
+                if ($triggerAccessDenied) {
+                    self::triggerAccessDenied();
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+
+        } else {
+            self::header('WWW-Authenticate', 'Digest realm="'.$realm.'",qop="auth",nonce="'.uniqid(rand()).'",opaque="'.md5($realm).'"');
+            self::header('HTTP/1.0 401 Unauthorized');
+            echo '<h1>401 Unauthorized</h1>';
+            exit;
+        }
+    }
 }
 
 
@@ -923,13 +943,6 @@ trait Event
         unset($apricot->listeners[$event]);
     }
 
-    /**
-     * Registers a callback that is triggered before any event listener is called.
-     */
-    public static function beforeEvent(callable $callback)
-    {
-
-    }
 
     /**
      * Wakes up listeners of a specific event.
@@ -949,7 +962,7 @@ trait Event
 
             foreach($listeners as $listener) {
 
-                self::emit('event', array($listener['callback']));
+                self::emit('event', array($event, $listener['callback']));
 
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
