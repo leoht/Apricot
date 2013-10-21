@@ -446,15 +446,6 @@ trait Http
         return $response;
     }
 
-    public static function cache(callable $callback, $expire = 3600)
-    {
-        $apricot = self::getInstance();
-
-        $apricot->cacheExpire = $expire;
-
-        call_user_func($callback);
-    }
-
     /**
      * Registers a callback triggered when a 403 Acess Denied response is sent.
      */
@@ -901,6 +892,35 @@ trait Security
 
 namespace Apricot\Component;
 
+trait Cache
+{
+    public static function cache($key, $value = null, $expire = 3600)
+    {
+        // add data into cache
+        if (null !== $value) {
+            if (function_exists('apc_add')) {
+                if (!apc_add($key, $value, $expire)) {
+                    throw new \RuntimeException(sprintf("Could not store data into cache (with name '%s')", $key));
+                }
+            }
+        } else {
+            if (function_exists('apc_fetch')) {
+                return apc_fetch($key);
+            }
+        }
+    }
+
+    public static function purge()
+    {
+        if (function_exists('apc_clear_cache')) {
+            return apc_clear_cache('user');
+        }
+    }
+}
+
+
+namespace Apricot\Component;
+
 trait Event
 {
     /**
@@ -988,6 +1008,7 @@ class Apricot
     use Component\Middleware;
     use Component\Security;
     use Component\Rest;
+    use Component\Cache;
 
     const BEFORE_REQUEST = 5;
 
