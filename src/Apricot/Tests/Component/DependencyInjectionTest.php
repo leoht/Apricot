@@ -41,6 +41,23 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(Apricot::get('baz') instanceof \stdClass);
     }
 
+    public function testObjectsAreCreatedFromClasses()
+    {
+        Apricot::reset();
+
+        Apricot::provide(array(
+            'foo' => array(
+                'class' => '\\stdClass'
+            ),
+            'bar' => array(
+                'class' => '\\stdClass'
+            ),
+        ));
+
+        $this->assertTrue(Apricot::get('foo') instanceof \stdClass);
+        $this->assertTrue(Apricot::get('bar') instanceof \stdClass);
+    }
+
     /**
      * @covers Apricot\Component\DependencyInjection::provide
      * @covers Apricot\Component\DependencyInjection::get
