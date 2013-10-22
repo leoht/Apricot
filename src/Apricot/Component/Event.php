@@ -25,11 +25,11 @@ trait Event
     /**
      * Emits an event into Apricot and wake up its listeners.
      */
-    public static function emit($event, $arguments = array())
+    public static function emit($event, $arguments = array(), callable $callback = null)
     {
         $apricot = self::getInstance();
 
-        $apricot->wakeUpListeners($event, $arguments);
+        $response = $apricot->wakeUpListeners($event, $arguments, $callback);
     }
 
     /**
@@ -48,7 +48,7 @@ trait Event
     /**
      * Wakes up listeners of a specific event.
      */
-    public function wakeUpListeners($event, array $arguments)
+    public function wakeUpListeners($event, array $arguments, callable $callback = null)
     {
         foreach($this->listeners as $e => $listeners)
         {
@@ -67,8 +67,8 @@ trait Event
 
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
-                if (null !== $listenerResponse) {
-                    return $listenerResponse;
+                if (null !== $callback) {
+                    call_user_func_array($callback, array($listenerResponse));
                 }
             }
         }
