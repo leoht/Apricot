@@ -14,7 +14,7 @@ App::run();
 ```
 A third optional argument of ```on``` is an integer which represents the priority of each listener. Apricot will use this value to determine
 which listener to call before another for a same event. The default value of this argument is 0 (lowest priority).
-```
+```php
 App::on('my_event', function () {
     echo "Last!";
 }, 20);
@@ -37,7 +37,7 @@ App::when('/login/:username', function ($username) {
 ```
 
 Sometimes you might want to delete all the listeners attached to an event. You can do this using the ```clear``` method:
-```
+```php
 App::on('my_event', function () {
     echo "my_event fired !"; 
 });
