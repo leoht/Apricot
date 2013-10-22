@@ -61,14 +61,14 @@ trait Event
                 return $a['priority'] > $b['priority'] ? -1 : 1;
             });
 
-            foreach($listeners as $listener) {
+            foreach($listeners as $listenerId => $listener) {
 
                 self::emit('event', array($event, $listener['callback']));
 
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
                 if (null !== $callback) {
-                    call_user_func_array($callback, array($listenerResponse));
+                    call_user_func_array($callback, array($listenerResponse, $listenerId));
                 }
             }
         }
