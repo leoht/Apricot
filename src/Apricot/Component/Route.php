@@ -2,6 +2,8 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Route
 {
     /**
@@ -10,7 +12,7 @@ trait Route
     protected $routes = array();
 
     /**
-     * @var callable
+     * @var Closure
      */
     protected $notFoundCallback;
 
@@ -27,7 +29,7 @@ trait Route
     /**
      * Registers a route into Apricot.
      */
-    public static function when($pattern, callable $callback, $name = null)
+    public static function when($pattern, Closure $callback, $name = null)
     {
         $apricot = self::getInstance();
 
@@ -36,7 +38,7 @@ trait Route
         }
 
         $originalPattern = $pattern;
-        $pattern = preg_replace('#:([a-z_]+)#is', '([a-zA-Z0-9\-_]+)', $pattern);
+        $pattern = preg_replace('#:([a-zA-Z0-9_]+)#is', '(.+)', $pattern);
 
         // Override an existing route with the exact same pattern
         foreach($apricot->routes as $routeName => $route) {
@@ -59,7 +61,7 @@ trait Route
     /**
      * Shortcut for Apricot::when('/')
      */
-    public static function home(callable $callback)
+    public static function home(Closure $callback)
     {
         self::when('/', $callback);
     }
@@ -70,7 +72,7 @@ trait Route
      *
      * @param array $requirements An array of route requirements
      */
-    public static function with(array $requirements, callable $callback)
+    public static function with(array $requirements, Closure $callback)
     {
         $r = new \ReflectionFunction($callback);
         $arguments = $r->getParameters();
@@ -104,9 +106,9 @@ trait Route
      * Defines a prefix for all routes registered in the given callback.
      *
      * @param string $prefix
-     * @param callable $callback The callback where prefixed routes are defined.
+     * @param Closure $callback The callback where prefixed routes are defined.
      */
-    public static function prefix($prefix, callable $callback)
+    public static function prefix($prefix, Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -126,7 +128,7 @@ trait Route
     /**
      * Shortcut to add an integer requirement on a route parameter.
      */
-    public static function withNumber($name, callable $callback)
+    public static function withNumber($name, Closure $callback)
     {
         return static::with(array($name => '\d+'), $callback);
     }
@@ -180,7 +182,7 @@ trait Route
     /**
      * Registers a callback that will be triggered if no route matches.
      */
-    public static function notFound($callback)
+    public static function notFound(Closure $callback)
     {
         $apricot = self::getInstance();
 
