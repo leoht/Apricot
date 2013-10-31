@@ -2,6 +2,8 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Http
 {
     /**
@@ -10,17 +12,12 @@ trait Http
     protected $validMethods = array('GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS');
 
     /**
-     * @var string
-     */
-    protected $cacheDir = 'cache';
-
-    /**
      * @var integer
      */
     protected $cacheExpire = 0;
 
     /**
-    * @var callable
+    * @var Closure
     */
     protected $accessDeniedCallback;
 
@@ -38,6 +35,11 @@ trait Http
     public function cookie($name, $content = null, $expire = 0, $path = '/', $domain = null, $secure = false, $httponly = true)
     {
         if (isset($_COOKIE[$name])) {
+            // if a closure has been provided as second argument
+            if ($content instanceof Closure) {
+                return call_user_func_array($content, param_arr);
+            }
+
             return $_COOKIE[$name];
         }
 
@@ -150,7 +152,7 @@ trait Http
     /**
      * Registers a callback triggered when a 403 Acess Denied response is sent.
      */
-    public static function accessDenied(callable $callback)
+    public static function accessDenied(Closure $callback)
     {
         $apricot = self::getInstance();
 

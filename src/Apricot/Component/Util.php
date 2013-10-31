@@ -2,9 +2,11 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Util
 {
-    public static function each(array $array, $iteratorCallback)
+    public static function each(array $array, Closure $iteratorCallback)
     {
         $r = new \ReflectionFunction($iteratorCallback);
         $argc = count($r->getParameters());
@@ -15,7 +17,7 @@ trait Util
         }
     }
 
-    public static function map(array $array, $iteratorCallback)
+    public static function map(array $array, Closure $iteratorCallback)
     {
         $r = new \ReflectionFunction($iteratorCallback);
         $argc = count($r->getParameters());

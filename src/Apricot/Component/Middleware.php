@@ -2,6 +2,8 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Middleware
 {
     /**
@@ -12,7 +14,7 @@ trait Middleware
     /**
      * Adds a middleware callback.
      */
-    public static function add(callable $callback, $type = self::BEFORE_REQUEST)
+    public static function add(Closure $callback, $type = self::BEFORE_REQUEST)
     {
         $apricot = static::getInstance();
 

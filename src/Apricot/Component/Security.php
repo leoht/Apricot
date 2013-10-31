@@ -2,6 +2,8 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Security
 {
     public static function session($key, $value = null)
@@ -36,7 +38,7 @@ trait Security
      * Secures an URL pattern and triggers a callback when
      * any URL matching this pattern is requested.
      */
-    public static function secure($pattern, callable $callback)
+    public static function secure($pattern, Closure $callback)
     {
         self::on('match', function ($path, $parameters) use ($pattern, $callback)
         {
@@ -51,27 +53,10 @@ trait Security
     /**
      * Uses an HTTP Basic authentication to authenticate an user.
      */
-    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
+    public static function httpBasic($realm, Closure $callback)
     {
         if (isset($_SERVER['PHP_AUTH_USER'])) {
-            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
-                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
-                    return true;
-                }
-
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-
-            } else {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            }
+            call_user_func_array($callback, array($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']));
         } else {
             self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
             self::header('HTTP/1.0 401 Unauthorized');

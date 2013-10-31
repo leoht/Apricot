@@ -2,12 +2,14 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Rest
 {
     /**
      * Defines a REST resource.
      */
-    public static function resource($resource, callable $callback)
+    public static function resource($resource, Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -21,7 +23,7 @@ trait Rest
         self::prefix('/' . $resource, $callback);
     }
 
-    public static function index(callable $callback)
+    public static function index(Closure $callback)
     {
         self::when('/', function () use ($callback)
         {
@@ -29,7 +31,7 @@ trait Rest
         });
     }
 
-    public static function show(callable $callback)
+    public static function show(Closure $callback)
     {
         self::when('/:id', self::withNumber('id', function () use ($callback)
         {
@@ -37,7 +39,7 @@ trait Rest
         }));
     }
 
-    public static function create(callable $callback)
+    public static function create(Closure $callback)
     {
         self::when('/', self::with(array('_method' => 'POST'), function () use ($callback)
         {
@@ -45,7 +47,7 @@ trait Rest
         }));
     }
 
-    public static function edit(callable $callack)
+    public static function edit(Closure $callack)
     {
         self::when('/:id/edit', self::withNumber('id', function () use ($callback)
         {
@@ -53,7 +55,7 @@ trait Rest
         }));
     }
 
-    public static function update(callable $callback)
+    public static function update(Closure $callback)
     {
         self::when('/:id', self::with(array('_method' => 'PUT', 'id' => '\d+'), function () use ($callback)
         {
@@ -61,7 +63,7 @@ trait Rest
         }));
     }
 
-    public static function delete(callable $callback)
+    public static function delete(Closure $callback)
     {
         self::when('/:id', self::with(array('_method' => 'DELETE', 'id' => '\d+'), function () use ($callback)
         {
