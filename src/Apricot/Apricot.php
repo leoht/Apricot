@@ -2,6 +2,8 @@
 
 namespace Apricot;
 
+use Closure;
+
 class Apricot
 {
     use Component\Http;
@@ -143,7 +145,7 @@ class Apricot
     public static function module($name, array $callbacks)
     {
         foreach($callbacks as $cb) {
-            if (!is_callable($cb)) {
+            if (!$cb instanceof Closure) {
                 throw new \LogicException("Array passed to Apricot::module() must be composed only of valid PHP callbacks.");
             }
         }
@@ -167,7 +169,7 @@ class Apricot
         return $this->failureCallback;
     }
 
-    public function setFailureCallback(callable $callback)
+    public function setFailureCallback(Closure $callback)
     {
         $this->failureCallback = $callback;
 
