@@ -1,7 +1,7 @@
 <?php
 /**
  * Apricot framework (one-file version).
- * Compiled on Mon 2013-10-21.
+ * Compiled on Thu 2013-10-31.
  *
  * Copyright (c) 2013 Léonard Hetsch <leo.hetsch@gmail.com>
  *
@@ -26,6 +26,8 @@
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Middleware
 {
     /**
@@ -36,7 +38,7 @@ trait Middleware
     /**
      * Adds a middleware callback.
      */
-    public static function add(callable $callback, $type = self::BEFORE_REQUEST)
+    public static function add(Closure $callback, $type = self::BEFORE_REQUEST)
     {
         $apricot = static::getInstance();
 
@@ -89,6 +91,9 @@ trait Middleware
 
 namespace Apricot\Component;
 
+use Closure;
+use Apricot\Component\DependencyInjection\ScopeContainer;
+
 trait DependencyInjection
 {
     /**
@@ -126,6 +131,15 @@ trait DependencyInjection
             $apricot->services[$id] = $value;
         } else {
             $apricot->parameters[$id] = $value;
+        }
+    }
+
+    public static function sets(array $values)
+    {
+        $apricot = self::getInstance();
+
+        foreach($values as $name => $value) {
+            self::set($name, $value);
         }
     }
 
@@ -218,13 +232,13 @@ trait DependencyInjection
      * @param callable $callback
      * @throws \LogicException if the scope is frozen.
      */
-    public static function scope($name, $callback = null)
+    public static function scope($name, Closure $callback = null)
     {
         $apricot = static::getInstance();
 
         if (!array_key_exists($name, $apricot->scopes)) {
             $apricot->scopes[$name] = array(
-                'container' => new \stdClass(),
+                'container' => new ScopeContainer(),
                 'frozen' => false,
             );
         }
@@ -273,9 +287,11 @@ trait DependencyInjection
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Util
 {
-    public static function each(array $array, $iteratorCallback)
+    public static function each(array $array, Closure $iteratorCallback)
     {
         $r = new \ReflectionFunction($iteratorCallback);
         $argc = count($r->getParameters());
@@ -286,7 +302,7 @@ trait Util
         }
     }
 
-    public static function map(array $array, $iteratorCallback)
+    public static function map(array $array, Closure $iteratorCallback)
     {
         $r = new \ReflectionFunction($iteratorCallback);
         $argc = count($r->getParameters());
@@ -301,6 +317,8 @@ trait Util
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Http
 {
     /**
@@ -309,17 +327,12 @@ trait Http
     protected $validMethods = array('GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS');
 
     /**
-     * @var string
-     */
-    protected $cacheDir = 'cache';
-
-    /**
      * @var integer
      */
     protected $cacheExpire = 0;
 
     /**
-    * @var callable
+    * @var Closure
     */
     protected $accessDeniedCallback;
 
@@ -337,6 +350,11 @@ trait Http
     public function cookie($name, $content = null, $expire = 0, $path = '/', $domain = null, $secure = false, $httponly = true)
     {
         if (isset($_COOKIE[$name])) {
+            // if a closure has been provided as second argument
+            if ($content instanceof Closure) {
+                return call_user_func_array($content, param_arr);
+            }
+
             return $_COOKIE[$name];
         }
 
@@ -449,7 +467,7 @@ trait Http
     /**
      * Registers a callback triggered when a 403 Acess Denied response is sent.
      */
-    public static function accessDenied(callable $callback)
+    public static function accessDenied(Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -496,12 +514,14 @@ trait Http
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Rest
 {
     /**
      * Defines a REST resource.
      */
-    public static function resource($resource, callable $callback)
+    public static function resource($resource, Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -515,7 +535,7 @@ trait Rest
         self::prefix('/' . $resource, $callback);
     }
 
-    public static function index(callable $callback)
+    public static function index(Closure $callback)
     {
         self::when('/', function () use ($callback)
         {
@@ -523,7 +543,7 @@ trait Rest
         });
     }
 
-    public static function show(callable $callback)
+    public static function show(Closure $callback)
     {
         self::when('/:id', self::withNumber('id', function () use ($callback)
         {
@@ -531,7 +551,7 @@ trait Rest
         }));
     }
 
-    public static function create(callable $callback)
+    public static function create(Closure $callback)
     {
         self::when('/', self::with(array('_method' => 'POST'), function () use ($callback)
         {
@@ -539,7 +559,7 @@ trait Rest
         }));
     }
 
-    public static function edit(callable $callack)
+    public static function edit(Closure $callack)
     {
         self::when('/:id/edit', self::withNumber('id', function () use ($callback)
         {
@@ -547,7 +567,7 @@ trait Rest
         }));
     }
 
-    public static function update(callable $callback)
+    public static function update(Closure $callback)
     {
         self::when('/:id', self::with(array('_method' => 'PUT', 'id' => '\d+'), function () use ($callback)
         {
@@ -555,7 +575,7 @@ trait Rest
         }));
     }
 
-    public static function delete(callable $callback)
+    public static function delete(Closure $callback)
     {
         self::when('/:id', self::with(array('_method' => 'DELETE', 'id' => '\d+'), function () use ($callback)
         {
@@ -584,6 +604,8 @@ trait Rest
 
 namespace Apricot\Component;
 
+use Closure;
+
 trait Route
 {
     /**
@@ -592,7 +614,7 @@ trait Route
     protected $routes = array();
 
     /**
-     * @var callable
+     * @var Closure
      */
     protected $notFoundCallback;
 
@@ -609,7 +631,7 @@ trait Route
     /**
      * Registers a route into Apricot.
      */
-    public static function when($pattern, callable $callback, $name = null)
+    public static function when($pattern, Closure $callback, $name = null)
     {
         $apricot = self::getInstance();
 
@@ -618,7 +640,7 @@ trait Route
         }
 
         $originalPattern = $pattern;
-        $pattern = preg_replace('#:([a-z_]+)#is', '([a-zA-Z0-9\-_]+)', $pattern);
+        $pattern = preg_replace('#:([a-zA-Z0-9_]+)#is', '(.+)', $pattern);
 
         // Override an existing route with the exact same pattern
         foreach($apricot->routes as $routeName => $route) {
@@ -641,7 +663,7 @@ trait Route
     /**
      * Shortcut for Apricot::when('/')
      */
-    public static function home(callable $callback)
+    public static function home(Closure $callback)
     {
         self::when('/', $callback);
     }
@@ -652,7 +674,7 @@ trait Route
      *
      * @param array $requirements An array of route requirements
      */
-    public static function with(array $requirements, callable $callback)
+    public static function with(array $requirements, Closure $callback)
     {
         $r = new \ReflectionFunction($callback);
         $arguments = $r->getParameters();
@@ -686,9 +708,9 @@ trait Route
      * Defines a prefix for all routes registered in the given callback.
      *
      * @param string $prefix
-     * @param callable $callback The callback where prefixed routes are defined.
+     * @param Closure $callback The callback where prefixed routes are defined.
      */
-    public static function prefix($prefix, callable $callback)
+    public static function prefix($prefix, Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -708,7 +730,7 @@ trait Route
     /**
      * Shortcut to add an integer requirement on a route parameter.
      */
-    public static function withNumber($name, callable $callback)
+    public static function withNumber($name, Closure $callback)
     {
         return static::with(array($name => '\d+'), $callback);
     }
@@ -762,7 +784,7 @@ trait Route
     /**
      * Registers a callback that will be triggered if no route matches.
      */
-    public static function notFound($callback)
+    public static function notFound(Closure $callback)
     {
         $apricot = self::getInstance();
 
@@ -772,6 +794,8 @@ trait Route
 
 
 namespace Apricot\Component;
+
+use Closure;
 
 trait Security
 {
@@ -807,7 +831,7 @@ trait Security
      * Secures an URL pattern and triggers a callback when
      * any URL matching this pattern is requested.
      */
-    public static function secure($pattern, callable $callback)
+    public static function secure($pattern, Closure $callback)
     {
         self::on('match', function ($path, $parameters) use ($pattern, $callback)
         {
@@ -822,27 +846,10 @@ trait Security
     /**
      * Uses an HTTP Basic authentication to authenticate an user.
      */
-    public static function httpBasic($realm, array $users, $triggerAccessDenied = false)
+    public static function httpBasic($realm, Closure $callback)
     {
         if (isset($_SERVER['PHP_AUTH_USER'])) {
-            if (in_array($_SERVER['PHP_AUTH_USER'], $users)) {
-                if ($_SERVER['PHP_AUTH_PW'] === $users[$_SERVER['PHP_AUTH_USER']]) {
-                    return true;
-                }
-
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-
-            } else {
-                if ($triggerAccessDenied) {
-                    self::triggerAccessDenied();
-                } else {
-                    return false;
-                }
-            }
+            call_user_func_array($callback, array($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']));
         } else {
             self::header('WWW-Authenticate', 'Basic realm="'.$realm.'"');
             self::header('HTTP/1.0 401 Unauthorized');
@@ -892,34 +899,99 @@ trait Security
 
 namespace Apricot\Component;
 
+use Closure;
+use Apricot\Component\Cache\FilesystemCache;
+use Apricot\Component\Cache\ApcCache;
+
 trait Cache
 {
-    public static function cache($key, $value = null, $expire = 3600)
+    use FilesystemCache;
+    use ApcCache;
+
+    protected $cacheDir;
+
+    public static function useCacheDir($cacheDir)
     {
-        // add data into cache
-        if (null !== $value) {
-            if (function_exists('apc_add')) {
-                if (!apc_add($key, $value, $expire)) {
-                    throw new \RuntimeException(sprintf("Could not store data into cache (with name '%s')", $key));
-                }
-            }
+        $apricot = self::getInstance();
+
+        $apricot->cacheDir = $cacheDir;
+    }
+
+    public static function cacheDir()
+    {
+        $apricot = self::getInstance();
+
+        return $apricot->cacheDir;
+    }
+
+    public static function cache($key, $value = null, $expire = 3600, $forceOverride = false)
+    {
+        if (null === self::cacheDir() && extension_loaded('apc')) {
+            return self::cacheWithApc($key, $value, $expire, $forceOverride);
         } else {
-            if (function_exists('apc_fetch')) {
-                return apc_fetch($key);
-            }
+            return self::cacheWithFile($key, $value, $expire, $forceOverride);
         }
     }
 
     public static function purge()
     {
-        if (function_exists('apc_clear_cache')) {
-            return apc_clear_cache('user');
+        if (extension_loaded('apc')) {
+            self::purgeWithApc();
+        } else {
+            self::purgeCacheFile();
         }
     }
 }
 
 
+
 namespace Apricot\Component;
+
+trait Database
+{
+    protected $pdo;
+
+    public static function query($query, $parameters, callable $callback = null)
+    {
+        if (!is_array($parameters) && is_callable($parameters)) {
+            $callback = $parameters;
+        }
+
+        $apricot = self::getInstance();
+
+        $statement = $apricot->getPDO()->prepare($query);
+
+        if (!$statement->execute()) {
+            throw new \RuntimeException("Query failed.");
+        }
+
+        $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        call_user_func_array($callback, $data);
+    }
+
+    protected function getPDO()
+    {
+        if (null === $this->pdo) {
+            $driver = self::get('db._driver');
+            $host = self::get('db._host');
+            $dbname = self::get('db._name');
+            $user = self::get('db._user');
+            $pass = self::get('db._password');
+            $this->pdo = new \PDO($driver.':host='.$host.';dbname='.$dbname, $user, $pass, array(
+                \PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ));
+        }
+
+        return $this->pdo;
+    }
+}
+
+
+
+namespace Apricot\Component;
+
+use Closure;
 
 trait Event
 {
@@ -927,11 +999,16 @@ trait Event
      * @var array
      */
     protected $listeners = array();
+
+    /**
+     * @var Boolean
+     */
+    protected $stopPropagation = false;
     
     /**
      * Registers an event listener.
      */
-    public static function on($event, callable $callback, $priority = 0)
+    public static function on($event, Closure $callback, $priority = 0)
     {
         $apricot = self::getInstance();
 
@@ -944,11 +1021,11 @@ trait Event
     /**
      * Emits an event into Apricot and wake up its listeners.
      */
-    public static function emit($event, $arguments = array())
+    public static function emit($event, $arguments = array(), Closure $callback = null)
     {
         $apricot = self::getInstance();
 
-        $apricot->wakeUpListeners($event, $arguments);
+        $response = $apricot->wakeUpListeners($event, $arguments, $callback);
     }
 
     /**
@@ -963,11 +1040,22 @@ trait Event
         unset($apricot->listeners[$event]);
     }
 
+    public static function stopPropagation()
+    {
+        $apricot = self::getInstance();
+
+        $apricot->stopPropagation = true;
+    }
+
+    public function isPropagationStopped()
+    {
+        return (Boolean) $this->stopPropagation;
+    }
 
     /**
      * Wakes up listeners of a specific event.
      */
-    public function wakeUpListeners($event, array $arguments)
+    public function wakeUpListeners($event, array $arguments, Closure $callback = null)
     {
         foreach($this->listeners as $e => $listeners)
         {
@@ -980,14 +1068,19 @@ trait Event
                 return $a['priority'] > $b['priority'] ? -1 : 1;
             });
 
-            foreach($listeners as $listener) {
+            foreach($listeners as $listenerId => $listener) {
+
+                if ($this->isPropagationStopped()) {
+                    $this->stopPropagation = false;
+                    return;
+                }
 
                 self::emit('event', array($event, $listener['callback']));
 
                 $listenerResponse = call_user_func_array($listener['callback'], $arguments);
                 
-                if (null !== $listenerResponse) {
-                    return $listenerResponse;
+                if (null !== $callback) {
+                    call_user_func_array($callback, array($listenerResponse, $listenerId));
                 }
             }
         }
@@ -997,7 +1090,10 @@ trait Event
 }
 
 
+
 namespace Apricot;
+
+use Closure;
 
 class Apricot
 {
@@ -1140,7 +1236,7 @@ class Apricot
     public static function module($name, array $callbacks)
     {
         foreach($callbacks as $cb) {
-            if (!is_callable($cb)) {
+            if (!$cb instanceof Closure) {
                 throw new \LogicException("Array passed to Apricot::module() must be composed only of valid PHP callbacks.");
             }
         }
@@ -1164,7 +1260,7 @@ class Apricot
         return $this->failureCallback;
     }
 
-    public function setFailureCallback(callable $callback)
+    public function setFailureCallback(Closure $callback)
     {
         $this->failureCallback = $callback;
 
