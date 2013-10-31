@@ -2,6 +2,9 @@
 
 namespace Apricot\Component;
 
+use Closure;
+use Apricot\Component\DependencyInjection\ScopeContainer;
+
 trait DependencyInjection
 {
     /**
@@ -39,6 +42,15 @@ trait DependencyInjection
             $apricot->services[$id] = $value;
         } else {
             $apricot->parameters[$id] = $value;
+        }
+    }
+
+    public static function sets(array $values)
+    {
+        $apricot = self::getInstance();
+
+        foreach($values as $name => $value) {
+            self::set($name, $value);
         }
     }
 
@@ -131,13 +143,13 @@ trait DependencyInjection
      * @param callable $callback
      * @throws \LogicException if the scope is frozen.
      */
-    public static function scope($name, $callback = null)
+    public static function scope($name, Closure $callback = null)
     {
         $apricot = static::getInstance();
 
         if (!array_key_exists($name, $apricot->scopes)) {
             $apricot->scopes[$name] = array(
-                'container' => new \stdClass(),
+                'container' => new ScopeContainer(),
                 'frozen' => false,
             );
         }
