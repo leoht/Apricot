@@ -2,28 +2,46 @@
 
 namespace Apricot\Component;
 
+use Closure;
+use Apricot\Component\Cache\FilesystemCache;
+use Apricot\Component\Cache\ApcCache;
+
 trait Cache
 {
-    public static function cache($key, $value = null, $expire = 3600)
+    use FilesystemCache;
+    use ApcCache;
+
+    protected $cacheDir;
+
+    public static function useCacheDir($cacheDir)
     {
-        // add data into cache
-        if (null !== $value) {
-            if (function_exists('apc_add')) {
-                if (!apc_add($key, $value, $expire)) {
-                    throw new \RuntimeException(sprintf("Could not store data into cache (with name '%s')", $key));
-                }
-            }
+        $apricot = self::getInstance();
+
+        $apricot->cacheDir = $cacheDir;
+    }
+
+    public static function cacheDir()
+    {
+        $apricot = self::getInstance();
+
+        return $apricot->cacheDir;
+    }
+
+    public static function cache($key, $value = null, $expire = 3600, $forceOverride = false)
+    {
+        if (null === self::cacheDir() && extension_loaded('apc')) {
+            return self::cacheWithApc($key, $value, $expire, $forceOverride);
         } else {
-            if (function_exists('apc_fetch')) {
-                return apc_fetch($key);
-            }
+            return self::cacheWithFile($key, $value, $expire, $forceOverride);
         }
     }
 
     public static function purge()
     {
-        if (function_exists('apc_clear_cache')) {
-            return apc_clear_cache('user');
+        if (extension_loaded('apc')) {
+            self::purgeWithApc();
+        } else {
+            self::purgeCacheFile();
         }
     }
 }
