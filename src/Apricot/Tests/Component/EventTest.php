@@ -72,4 +72,20 @@ class EventTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue('BA' === $result);
     }
+
+    public function testEmitCallbackGetResponse()
+    {
+        Apricot::reset();
+
+        Apricot::on('foo', function ($bar)
+        {
+            return $bar;
+        });
+
+        Apricot::emit('foo', array('Bar'), function ($resp, $index)
+        {
+            $this->assertTrue('Bar' === $resp);
+            $this->assertTrue(0 === $index);
+        });
+    }
 }

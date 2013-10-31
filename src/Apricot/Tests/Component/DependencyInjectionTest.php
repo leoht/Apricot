@@ -17,12 +17,25 @@ class DependencyInjectionTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue('Bar' === Apricot::get('foo'));
     }
 
+    public function testParametersAndObjectsAreStored()
+    {
+        Apricot::sets(array(
+            'foo' => 'Foo',
+            'bar' => 'Bar',
+            'baz' => new \stdClass(),
+        ));
+
+        $this->assertTrue('Foo' === Apricot::get('foo') && 'Bar' === Apricot::get('bar') && Apricot::get('baz') instanceof \stdClass);
+    }
+
     /**
      * @covers Apricot\Component\DependencyInjection::set
      * @covers Apricot\Component\DependencyInjection::get
      */
     public function testObjectIsStored()
     {
+        Apricot::reset();
+        
         $object = new \stdClass();
 
         Apricot::set('bar', $object);
