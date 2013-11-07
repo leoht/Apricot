@@ -2,9 +2,41 @@
 
 require 'autoload.php';
 
-$dirname = './src/Apricot/Component';
 
-$dir = opendir($dirname);
+function getCompiledDirectory($dirname, $currentDepth = 0)
+{
+    $dir = opendir($dirname);
+
+    $compiled = "";
+
+    echo "Compiling directory $dirname... \r\n";
+
+    while ($file = readdir($dir)) {
+        if ($file != '.' && $file != '..' && $file != 'Apricot.php') {
+
+            if (false === strpos($file, '.')) { // dir
+                $compiled .= getCompiledDirectory($dirname.'/'.$file, $currentDepth+1);
+            } else {
+
+                for ($i = 0 ; $i < $currentDepth ; $i++) {
+                    echo "\t";
+                }
+
+                echo "-> Compiling $file... \r\n";
+
+                $fileContent = file_get_contents($dirname.'/'.$file);
+                // strip the PHP tag
+                $fileContent = str_replace('<?php', '', $fileContent);
+
+                $compiled .= $fileContent . PHP_EOL;
+            }
+        }
+    }
+
+    return $compiled;
+}
+
+$dirname = './src/Apricot/Component';
 
 $date = date('D Y-m-d');
 
@@ -36,20 +68,15 @@ $compiled = <<<EOF
  */
 EOF;
 
-while ($file = readdir($dir)) {
-    if ($file != '.' && $file != '..' && $file != 'Apricot.php') {
-        $fileContent = file_get_contents($dirname.'/'.$file);
-        // strip the PHP tag
-        $fileContent = str_replace('<?php', '', $fileContent);
+$compiled .= getCompiledDirectory($dirname);
 
-        $compiled .= $fileContent . PHP_EOL;
-    }
-}
 
 $fileContent = file_get_contents($dirname.'/../Apricot.php');
 // strip the PHP tag
 $fileContent = str_replace('<?php', '', $fileContent);
 
 $compiled .= $fileContent;
+
+rename('Apricot.php', '~Apricot.php');
 
 file_put_contents('Apricot.php', $compiled);
