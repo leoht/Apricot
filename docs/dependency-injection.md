@@ -85,7 +85,7 @@ App::when('/users', function ()
 
 ```
 
-Re-opening the scope everytime you want to inject a variable in it can be boring, that's why the ```inject``` method is here:
+Re-opening the scope everytime you want to inject a variable in it can be painful, that's why the ```inject``` method is here:
 ```php
 $users = somehowGetUsersFromDatabase();
 
