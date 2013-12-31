@@ -63,19 +63,19 @@ A scope is an independent container that can be accessed using the ```scope``` m
 
 $users = somehowGetUsersFromDatabase();
 
-App::scope('users', function ($scope) use ($users)
+App::scope('usersScope', function ($scope) use ($users)
 {
     $scope['users'] = $users;
 });
 ```
 
-Doing this, we created the scope "users", which now contains a variable "users" that holds an array we just retrieved somehow, containing 
+Doing this, we created the scope "usersScope", which now contains a variable "users" that holds an array we just retrieved somehow, containing 
 our users information (this is an example).
 We can now re-open this scope later in our code:
 ```php
 App::when('/users', function ()
 {
-    App::scope('users', function ($scope)
+    App::scope('usersScope', function ($scope)
     {
         $users = $scope['users'];
 
@@ -90,7 +90,7 @@ Re-opening the scope everytime you want to inject a variable in it can be painfu
 $users = somehowGetUsersFromDatabase();
 
 // this will do exactly the same thing as above
-App::inject('users', array(
+App::inject('usersScope', array(
     'users' => $users,
 ));
 ```
@@ -99,8 +99,7 @@ To avoid further modifications on a scope, just ```freeze``` it:
 
 ```php
 // We don't want it to be modified anymore
-App::freeze('users');
+App::freeze('usersScope');
 ```
 
 Now trying to re-open the scope will throw a ```LogicException```.
-
