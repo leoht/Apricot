@@ -14,6 +14,7 @@ class Apricot
     use Component\Security;
     use Component\Rest;
     use Component\Cache;
+    use Component\View;
 
     const BEFORE_REQUEST = 5;
 
@@ -129,17 +130,51 @@ class Apricot
     }
 
     /**
-     * Requires a file.
+     * Requires a PHP file or a whole directory.
      */
-    public static function load($file)
+    public static function load($path, $require = true)
     {
         $apricot = self::getInstance();
 
-        if (!file_exists($file)) {
-            throw new \RuntimeException(sprintf("Cannot find file '%s' in base directory '%s'", $file, $apricot->basePath));
+        $path = $apricot->basePath . '/' . $path;
+
+        // is it a directory ?
+        if (false === strpos($path, '.php') && is_dir($path)) {
+            return $apricot->loadDir($path, $require);
         }
 
-        require $file;
+        if (!file_exists($path)) {
+            throw new \RuntimeException(sprintf("Cannot find file '%s' in base directory '%s'", $path, $apricot->basePath));
+        }
+
+        if ($require) {
+            require $path;
+        } else {
+            include $path;
+        }
+
+        return true;
+    }
+
+    protected function loadDir($path, $require = true)
+    {
+        $directoryIterator = new \RecursiveDirectoryIterator($path);
+        $iterator = new \RecursiveIteratorIterator($directoryIterator);
+        $regex = new \RegexIterator($iterator, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH);
+
+        foreach ($regex as $matchFile) {
+            $file = $matchFile[0];
+
+            if (file_exists($file)) {
+                if ($require) {
+                    require $file;
+                } else {
+                    include $file;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static function module($name, array $callbacks)
